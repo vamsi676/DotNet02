@@ -1,0 +1,66 @@
+pipeline {
+    agent any
+
+    environment {
+        APP_NAME = "containerized"
+        RELEASE = "1.0.0"
+        DOCKER_USER = "surya8899"
+        DOCKER_PASS = 'surya-dockerhub'
+        IMAGE_NAME = "${DOCKER_USER}/${APP_NAME}"
+        IMAGE_TAG = "${RELEASE}-${BUILD_NUMBER}"
+        SONARQUBE_URL = 'http://34.170.132.146:9000'
+        SONARQUBE_TOKEN = 'sqa_5e39d50cc36ef4b32d425ae981e8ac4e19651e7b'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/vamsi676/DotNet01'
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    withSonarQubeEnv('SonarQube') { // Assuming 'SonarQube' is the name of your SonarQube server configuration in Jenkins
+                        bat 'dotnet sonarscanner begin /k:"My-DotNet-Project" /d:sonar.login=${SONARQUBE_TOKEN} /d:sonar.host.url=${SONARQUBE_URL}'
+                        bat 'dotnet build'
+                        bat 'dotnet sonarscanner end /d:sonar.login=${SONARQUBE_TOKEN}'
+                    }
+                }
+            }
+        }
+
+        /*stage('Docker Build & Push') {
+            steps {
+                script {
+                    docker.withRegistry('', DOCKER_PASS) {
+                        def docker_image = docker.build("${IMAGE_NAME}")
+
+                        docker_image.push("${IMAGE_TAG}")
+                        docker_image.push('latest')
+                    }
+                }
+            }
+        }*/
+
+        /*stage('Run Container') {
+            steps {
+                script {
+                    def container_name = "webgoat"
+                    bat "docker run -d --name ${container_name} -it -p 9000:9000 ${IMAGE_NAME}:${IMAGE_TAG}"
+                }
+            }
+        }*/
+    }
+
+    /*post {
+        always {
+            script {
+                def container_name = "webgoat"
+                bat "docker stop ${container_name} || exit 0"
+                bat "docker rm ${container_name} || exit 0"
+            }
+        }
+    }*/
+}
